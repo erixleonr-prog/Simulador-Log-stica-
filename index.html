@@ -1,0 +1,204 @@
+El análisis del manual compartido no devolvió su contenido, así que este simulador usa **preguntas generales de logística**, no puedo asegurar que coincidan exactamente con tu material. El código sí está completo: crea 100 preguntas, elige 40 al azar, corrige cada respuesta y permite repasar las fallidas.
+
+En el editor de GitHub que tienes abierto, pega **todo** esto en `index.html` y luego toca **Commit changes**:
+
+```html
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador de Logística</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:#eef4ef;color:#17251d;font:16px system-ui,sans-serif}
+main{max-width:700px;margin:auto;background:white;padding:20px;border-radius:16px;box-shadow:0 4px 18px #17352218}
+h1{font-size:1.4rem}
+.muted{color:#56645b}
+button,.opcion{font:inherit;border-radius:10px;padding:12px;margin:5px 0}
+button{border:0;background:#176b42;color:white;cursor:pointer}
+button:disabled{opacity:.45}
+.opcion{display:block;width:100%;text-align:left;background:white;border:1px solid #ccd8cf;cursor:pointer}
+.opcion.sel{border:2px solid #218653;background:#edf8f0}
+.barra{height:9px;background:#e2e9e4;border-radius:9px;margin:14px 0}
+#progreso{height:100%;width:0;background:#218653;border-radius:9px}
+#aviso{padding:12px;background:#f1f5f2;border-radius:10px;margin:12px 0}
+.oculto{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>📘 Simulador de Logística</h1>
+<p class="muted">100 preguntas · 40 por examen · repaso de fallidas</p>
+<section id="inicio">
+<p>Responde una pregunta a la vez. Las preguntas falladas se guardan en este navegador.</p>
+<button onclick="iniciar()">Iniciar examen</button>
+<button onclick="iniciarRepaso()" id="repasar" disabled>Repasar fallidas</button>
+<p id="estado" class="muted"></p>
+</section>
+<section id="juego" class="oculto">
+<div id="contador" class="muted"></div>
+<div class="barra"><div id="progreso"></div></div>
+<h2 id="enunciado"></h2>
+<div id="opciones"></div>
+<div id="aviso" class="oculto"></div>
+<button id="comprobar" onclick="comprobar()" disabled>Comprobar</button>
+<button id="siguiente" onclick="siguiente()" disabled>Siguiente</button>
+</section>
+<section id="final" class="oculto"></section>
+</main>
+<script>
+const temas=[
+["Abastecimiento","gestiona los recursos y suministros necesarios para atender las necesidades","¿Qué función logística gestiona recursos y suministros?"],
+["Transporte","desplaza personas y recursos hasta los lugares donde se necesitan","¿Qué función logística desplaza personas y recursos?"],
+["Mantenimiento","conserva o restablece la capacidad de funcionamiento del material","¿Cuál es el propósito general del mantenimiento?"],
+["Infraestructura","abarca instalaciones, construcciones y obras necesarias para el apoyo","¿Qué función se relaciona con instalaciones y construcciones?"],
+["Sanidad","brinda atención de salud y puede incluir evacuación y hospitalización","¿Qué función logística atiende necesidades de salud?"],
+["Determinación de necesidades","identifica qué recursos hacen falta y cuándo se requieren","¿Qué etapa identifica los recursos necesarios?"],
+["Obtención","consigue los recursos que fueron identificados como necesarios","¿Qué etapa permite conseguir los recursos requeridos?"],
+["Almacenamiento","conserva y organiza recursos hasta que se distribuyan o utilicen","¿Qué actividad conserva y organiza recursos antes de su uso?"],
+["Distribución","hace llegar recursos a las personas o unidades que los necesitan","¿Qué actividad entrega los recursos a sus destinatarios?"],
+["Control de existencias","permite conocer las cantidades disponibles y sus movimientos","¿Qué permite saber cuánto material hay disponible?"],
+["Oportunidad","consiste en proporcionar el apoyo en el momento requerido","¿Qué principio se relaciona con brindar apoyo a tiempo?"],
+["Simplicidad","facilita comprender y ejecutar procedimientos","¿Qué principio ayuda a que los procedimientos sean fáciles de aplicar?"],
+["Flexibilidad","permite adaptar el apoyo cuando cambian las condiciones","¿Qué principio permite ajustar el apoyo ante cambios?"],
+["Economía","promueve el uso eficiente de los recursos y evita desperdicios","¿Qué principio busca usar bien los recursos y evitar desperdicios?"],
+["Viabilidad","valora si un plan puede ejecutarse con los medios y condiciones disponibles","¿Qué se evalúa al comprobar si un plan puede realizarse?"],
+["Sostenibilidad","es la capacidad de mantener el apoyo durante el tiempo requerido","¿Qué concepto expresa que el apoyo pueda continuar en el tiempo?"],
+["Seguridad","procura proteger al personal, los recursos y las instalaciones","¿Qué principio se relaciona con proteger personal y recursos?"],
+["Planeamiento logístico","organiza cómo se atenderán las necesidades con los medios disponibles","¿Qué organiza la manera de proporcionar el apoyo?"],
+["Registro de almacén","anota entradas y salidas para mantener control de los recursos","¿Qué registro ayuda a controlar movimientos de almacén?"],
+["Recepción","verifica y registra los recursos que llegan","¿Qué actividad verifica y registra los recursos recibidos?"],
+["Inventario","permite comprobar y actualizar las existencias disponibles","¿Qué proceso ayuda a comprobar las existencias?"],
+["Reposición","recupera el nivel de recursos que se consumieron o hicieron falta","¿Qué acción recupera los recursos consumidos?"],
+["Ruta de abastecimiento","es el camino utilizado para trasladar suministros a su destino","¿Qué ruta se usa para trasladar suministros?"],
+["Control de tránsito","coordina y regula la circulación de vehículos por las vías","¿Qué actividad organiza la circulación de vehículos?"],
+["Movilización","prepara y organiza recursos y capacidades ante necesidades previstas","¿Qué proceso organiza recursos y capacidades para atender necesidades?"]
+];
+
+const distractores=[
+"el transporte de personal exclusivamente",
+"la eliminación de los registros de control",
+"la construcción de instalaciones únicamente",
+"la atención médica individual exclusivamente",
+"el almacenamiento sin revisar las necesidades",
+"la reducción automática de los recursos disponibles",
+"la suspensión de la coordinación entre unidades",
+"la clasificación de documentos administrativos"
+];
+
+const banco=[];
+temas.forEach(([nombre,def,pregunta],i)=>{
+  for(let v=0;v<4;v++){
+    const enunciado=v===0?pregunta:
+      v===1?`¿Cuál opción describe correctamente «${nombre}»?`:
+      v===2?`En logística, ¿para qué sirve o qué significa «${nombre}»?`:
+      `Selecciona la afirmación correcta sobre «${nombre}».`;
+    const correcta=v===0?nombre:def;
+    const opciones=[correcta];
+    let k=0;
+    while(opciones.length<4){
+      const d=distractores[(i*3+v+k)%distractores.length];
+      if(!opciones.includes(d))opciones.push(d);
+      k++;
+    }
+    const orden=(i+v)%4;
+    const barajadas=opciones.slice();
+    for(let j=barajadas.length-1;j>0;j--){
+      const n=(i*7+v*3+j)% (j+1);
+      [barajadas[j],barajadas[n]]=[barajadas[n],barajadas[j]];
+    }
+    banco.push({id:banco.length,q:enunciado,a:barajadas,c:barajadas.indexOf(correcta),exp:`${nombre}: ${def}.`});
+  }
+});
+
+let fallidas=JSON.parse(localStorage.getItem("fallidasLogistica")||"[]");
+let lista=[],pos=0,bien=0,elegida=null,modoRepaso=false;
+
+function actualizar(){
+  fallidas=JSON.parse(localStorage.getItem("fallidasLogistica")||"[]");
+  document.getElementById("repasar").disabled=fallidas.length===0;
+  document.getElementById("estado").textContent=
+    fallidas.length?`Preguntas fallidas guardadas: ${fallidas.length}`:"Aún no hay preguntas fallidas guardadas.";
+}
+function iniciar(){
+  modoRepaso=false;
+  lista=[...banco].sort(()=>Math.random()-0.5).slice(0,40);
+  empezar();
+}
+function iniciarRepaso(){
+  modoRepaso=true;
+  const ids=new Set(fallidas);
+  lista=banco.filter(x=>ids.has(x.id));
+  if(!lista.length){actualizar();return}
+  empezar();
+}
+function empezar(){
+  pos=0;bien=0;elegida=null;
+  document.getElementById("inicio").classList.add("oculto");
+  document.getElementById("final").classList.add("oculto");
+  document.getElementById("juego").classList.remove("oculto");
+  mostrar();
+}
+function mostrar(){
+  elegida=null;
+  const x=lista[pos];
+  document.getElementById("contador").textContent=`Pregunta ${pos+1} de ${lista.length}`;
+  document.getElementById("progreso").style.width=`${pos/lista.length*100}%`;
+  document.getElementById("enunciado").textContent=x.q;
+  document.getElementById("aviso").classList.add("oculto");
+  document.getElementById("comprobar").disabled=true;
+  document.getElementById("siguiente").disabled=true;
+  const cont=document.getElementById("opciones");cont.innerHTML="";
+  x.a.forEach((op,i)=>{
+    const b=document.createElement("button");
+    b.className="opcion";b.textContent=`${"ABCD"[i]}) ${op}`;
+    b.onclick=()=>{
+      if(document.getElementById("siguiente").disabled===false)return;
+      elegida=i;
+      document.querySelectorAll(".opcion").forEach(z=>z.classList.remove("sel"));
+      b.classList.add("sel");
+      document.getElementById("comprobar").disabled=false;
+    };
+    cont.appendChild(b);
+  });
+}
+function comprobar(){
+  if(elegida===null)return;
+  const x=lista[pos],correcta=elegida===x.c;
+  let ids=new Set(fallidas);
+  if(correcta){bien++;ids.delete(x.id)}
+  else ids.add(x.id);
+  fallidas=[...ids];
+  localStorage.setItem("fallidasLogistica",JSON.stringify(fallidas));
+  const a=document.getElementById("aviso");
+  a.classList.remove("oculto");
+  a.innerHTML=`<strong style="color:${correcta?"#126438":"#a12a22"}">${correcta?"¡Correcto!":"No es correcto."}</strong><br>${x.exp}`;
+  document.getElementById("comprobar").disabled=true;
+  document.getElementById("siguiente").disabled=false;
+  actualizar();
+}
+function siguiente(){
+  pos++;
+  if(pos<lista.length){mostrar();return}
+  document.getElementById("juego").classList.add("oculto");
+  const f=document.getElementById("final");
+  f.classList.remove("oculto");
+  f.innerHTML=`<h2>${modoRepaso?"Repaso terminado":"Examen terminado"}</h2>
+  <p>Respuestas correctas: <strong>${bien} de ${lista.length}</strong>.</p>
+  <p>Fallidas guardadas para repasar: <strong>${fallidas.length}</strong>.</p>
+  <button onclick="volver()">Volver al inicio</button>
+  ${fallidas.length?'<button onclick="iniciarRepaso()">Repasar fallidas</button>':""}`;
+}
+function volver(){
+  document.getElementById("final").classList.add("oculto");
+  document.getElementById("inicio").classList.remove("oculto");
+  actualizar();
+}
+actualizar();
+</script>
+</body>
+</html>
+```
+
+Cuando lo pegues, pulsa **Commit changes** para guardar. Después dime qué pantalla te aparece y te indico cómo activar GitHub Pages y obtener el enlace.
